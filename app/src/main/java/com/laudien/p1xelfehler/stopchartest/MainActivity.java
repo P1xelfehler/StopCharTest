@@ -27,6 +27,7 @@ import static android.widget.Toast.LENGTH_SHORT;
 public class MainActivity extends AppCompatActivity {
 
     private static final long WAIT_TIME = 10000;
+    private boolean isCharging;
     private TextView tv_log;
     private Button btn_copy;
     private ToggleChargingFile[] files = new ToggleChargingFile[]{
@@ -36,6 +37,14 @@ public class MainActivity extends AppCompatActivity {
             new ToggleChargingFile("/sys/class/power_supply/battery/batt_slate_mode", "0", "1"),
             new ToggleChargingFile("/sys/class/hw_power/charger/charge_data/enable_charger", "1", "0"),
             new ToggleChargingFile("/sys/module/pm8921_charger/parameters/disabled", "0", "1")
+    };
+    private BroadcastReceiver batteryChangedReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (intent != null) {
+                isCharging = intent.getIntExtra(BatteryManager.EXTRA_PLUGGED, -1) != 0;
+            }
+        }
     };
 
     @Override
@@ -66,7 +75,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         Intent batteryStatus = registerReceiver(null, new IntentFilter(ACTION_BATTERY_CHANGED));
-        boolean isCharging = batteryStatus != null && batteryStatus.getIntExtra(BatteryManager.EXTRA_PLUGGED, -1) != 0;
+        isCharging = batteryStatus != null && batteryStatus.getIntExtra(BatteryManager.EXTRA_PLUGGED, -1) != 0;
         if (!isCharging) {
             final AlertDialog dialog = getDialog(getString(R.string.dialog_connect_charger));
             dialog.show();
@@ -109,6 +118,7 @@ public class MainActivity extends AppCompatActivity {
             log("Model: " + Build.MODEL);
             log("Product: " + Build.PRODUCT);
             log("---------------------------------------------------------------------------");
+            registerReceiver(batteryChangedReceiver, new IntentFilter(ACTION_BATTERY_CHANGED));
         }
 
         @Override
@@ -122,8 +132,6 @@ public class MainActivity extends AppCompatActivity {
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
-                    Intent batteryStatus = registerReceiver(null, new IntentFilter(ACTION_BATTERY_CHANGED));
-                    boolean isCharging = batteryStatus != null && batteryStatus.getIntExtra(BatteryManager.EXTRA_PLUGGED, -1) != 0;
                     if (!isCharging) {
                         publishProgress(String.format("That file disabled charging: '%s'!", file.getPath()));
                         publishProgress("Resetting file...");
@@ -154,6 +162,7 @@ public class MainActivity extends AppCompatActivity {
             super.onPostExecute(aVoid);
             btn_copy.setEnabled(true);
             log("Process finished!");
+            unregisterReceiver(batteryChangedReceiver);
         }
     }
 
