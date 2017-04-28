@@ -9,15 +9,15 @@ class ToggleChargingFile {
         this.chargeOff = chargeOff;
     }
 
-    public String getPath() {
+    String getPath() {
         return path;
     }
 
-    public String getChargeOn() {
+    String getChargeOn() {
         return chargeOn;
     }
 
-    public String getChargeOff() {
+    String getChargeOff() {
         return chargeOff;
     }
 }
