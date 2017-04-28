@@ -131,7 +131,9 @@ public class MainActivity extends AppCompatActivity {
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
-                    if (dischargingReceived) {
+                    Intent batteryStatus = registerReceiver(null, new IntentFilter(ACTION_BATTERY_CHANGED));
+                    boolean isCharging = batteryStatus != null && batteryStatus.getIntExtra(BatteryManager.EXTRA_PLUGGED, -1) != 0;
+                    if (dischargingReceived || isCharging) {
                         publishProgress(String.format("That file disabled charging: '%s'!", file.getPath()));
                         publishProgress("Resetting file...");
                         Shell.SU.run(String.format("echo %s > %s", file.getChargeOn(), file.getPath()));
