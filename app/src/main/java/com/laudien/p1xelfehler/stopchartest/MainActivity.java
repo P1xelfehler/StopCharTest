@@ -11,7 +11,6 @@ import android.os.AsyncTask;
 import android.os.BatteryManager;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.Button;
@@ -23,7 +22,6 @@ import java.io.File;
 import eu.chainfire.libsuperuser.Shell;
 
 import static android.content.Intent.ACTION_BATTERY_CHANGED;
-import static android.content.Intent.ACTION_POWER_DISCONNECTED;
 import static android.widget.Toast.LENGTH_SHORT;
 
 public class MainActivity extends AppCompatActivity {
@@ -147,6 +145,7 @@ public class MainActivity extends AppCompatActivity {
                     publishProgress("That file does not exist!");
                 }
             }
+            unregisterReceiver(dischargingReceiver);
             return null;
         }
 
