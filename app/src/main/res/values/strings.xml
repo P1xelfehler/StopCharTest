@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">Stop charging tester</string>
+
+    <!-- Buttons -->
+    <string name="btn_start_testing">Start testing!</string>
+    <string name="btn_copy">Copy log</string>
+
+    <!-- Dialogs -->
+    <string name="dialog_check_root">Checking for root...</string>
+    <string name="dialog_not_rooted">You are not rooted! You cannot use this app!</string>
+    <string name="dialog_connect_charger">Please connect a charger!</string>
+
+    <!-- Toast messages -->
+    <string name="toast_copy_success">The log was copied into the clipboard!</string>
+    <string name="toast_nothing_to_copy">Nothing to copy here!</string>
+</resources>
