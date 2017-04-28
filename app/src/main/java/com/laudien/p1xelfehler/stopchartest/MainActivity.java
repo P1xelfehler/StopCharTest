@@ -74,6 +74,7 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public void onReceive(Context context, Intent intent) {
                     dialog.dismiss();
+                    unregisterReceiver(this);
                 }
             }, new IntentFilter(Intent.ACTION_POWER_CONNECTED));
         }
