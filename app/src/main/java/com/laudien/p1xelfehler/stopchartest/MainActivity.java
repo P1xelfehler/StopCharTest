@@ -98,8 +98,6 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private class CheckFilesTask extends AsyncTask<Void, String, Void> {
-        private boolean dischargingReceived = false;
-
         @Override
         protected void onPreExecute() {
             super.onPreExecute();
@@ -114,16 +112,8 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         protected Void doInBackground(Void... params) {
-            BroadcastReceiver dischargingReceiver = new BroadcastReceiver() {
-                @Override
-                public void onReceive(Context context, Intent intent) {
-                    dischargingReceived = true;
-                }
-            };
-            registerReceiver(dischargingReceiver, new IntentFilter(Intent.ACTION_POWER_DISCONNECTED));
             for (ToggleChargingFile file : files) {
                 publishProgress(String.format("Testing file '%s'...", file.getPath()));
-                dischargingReceived = false;
                 if (new File(file.getPath()).exists()) {
                     Shell.SU.run(String.format("echo %s > %s", file.getChargeOff(), file.getPath()));
                     try {
@@ -133,7 +123,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                     Intent batteryStatus = registerReceiver(null, new IntentFilter(ACTION_BATTERY_CHANGED));
                     boolean isCharging = batteryStatus != null && batteryStatus.getIntExtra(BatteryManager.EXTRA_PLUGGED, -1) != 0;
-                    if (dischargingReceived || isCharging) {
+                    if (!isCharging) {
                         publishProgress(String.format("That file disabled charging: '%s'!", file.getPath()));
                         publishProgress("Resetting file...");
                         Shell.SU.run(String.format("echo %s > %s", file.getChargeOn(), file.getPath()));
@@ -147,7 +137,6 @@ public class MainActivity extends AppCompatActivity {
                     publishProgress("That file does not exist!");
                 }
             }
-            unregisterReceiver(dischargingReceiver);
             return null;
         }
 
