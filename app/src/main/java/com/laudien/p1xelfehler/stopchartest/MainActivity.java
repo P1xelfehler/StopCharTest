@@ -27,17 +27,19 @@ import static android.widget.Toast.LENGTH_SHORT;
 public class MainActivity extends AppCompatActivity {
 
     private static final long WAIT_TIME = 10000;
+    ToggleChargingFile[] files = new ToggleChargingFile[]{
+            new ToggleChargingFile("/sys/class/power_supply/battery/battery_charging_enabled", "1", "0"),
+            new ToggleChargingFile("/sys/class/power_supply/battery/charging_enabled", "1", "0"),
+            new ToggleChargingFile("/sys/class/power_supply/battery/batt_slate_mode", "0", "1"),
+            new ToggleChargingFile("/sys/class/hw_power/charger/charge_data/enable_charger", "1", "0"),
+            new ToggleChargingFile("/sys/module/pm8921_charger/parameters/disabled", "0", "1"),
+            new ToggleChargingFile("/sys/devices/qpnp-charger-f2d04c00/power_supply/battery/charging_enabled", "1", "0"),
+            new ToggleChargingFile("/sys/devices/qpnp-charger-14/power_supply/battery/charging_enabled", "1", "0"),
+            new ToggleChargingFile("/sys/class/power_supply/battery/input_suspend", "0", "1")
+    };
     private boolean isCharging;
     private TextView tv_log;
     private Button btn_copy;
-    private ToggleChargingFile[] files = new ToggleChargingFile[]{
-            new ToggleChargingFile("/sys/class/power_supply/battery/charging_enabled", "1", "0"),
-            new ToggleChargingFile("/sys/class/power_supply/battery/battery_charging_enabled", "1", "0"),
-            new ToggleChargingFile("/sys/class/power_supply/battery/store_mode", "0", "1"),
-            new ToggleChargingFile("/sys/class/power_supply/battery/batt_slate_mode", "0", "1"),
-            new ToggleChargingFile("/sys/class/hw_power/charger/charge_data/enable_charger", "1", "0"),
-            new ToggleChargingFile("/sys/module/pm8921_charger/parameters/disabled", "0", "1")
-    };
     private BroadcastReceiver batteryChangedReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -51,15 +53,15 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        tv_log = (TextView) findViewById(R.id.tv_log);
-        Button btn_start = (Button) findViewById(R.id.btn_start);
+        tv_log = findViewById(R.id.tv_log);
+        Button btn_start = findViewById(R.id.btn_start);
         btn_start.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 new CheckFilesTask().execute();
             }
         });
-        btn_copy = (Button) findViewById(R.id.btn_copy);
+        btn_copy = findViewById(R.id.btn_copy);
         btn_copy.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
