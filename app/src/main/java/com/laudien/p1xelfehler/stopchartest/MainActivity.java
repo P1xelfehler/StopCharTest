@@ -22,6 +22,11 @@ import java.io.File;
 import eu.chainfire.libsuperuser.Shell;
 
 import static android.content.Intent.ACTION_BATTERY_CHANGED;
+import static android.content.Intent.ACTION_POWER_CONNECTED;
+import static android.content.Intent.ACTION_POWER_DISCONNECTED;
+import static android.os.BatteryManager.EXTRA_PLUGGED;
+import static android.os.Build.VERSION.SDK_INT;
+import static android.os.Build.VERSION_CODES.LOLLIPOP;
 import static android.widget.Toast.LENGTH_SHORT;
 
 public class MainActivity extends AppCompatActivity {
@@ -51,14 +56,27 @@ public class MainActivity extends AppCompatActivity {
             new ToggleChargingFile("/sys/devices/platform/tegra12-i2c.0/i2c-0/0-006b/charging_state", "enabled", "disabled"), // experimental
             new ToggleChargingFile("/sys/devices/virtual/power_supply/manta-battery/charge_enabled", "1", "0") // experimental
     };
-    private boolean isCharging;
+    private boolean changeReceived;
     private TextView tv_log;
     private Button btn_copy;
     private BroadcastReceiver batteryChangedReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            if (intent != null) {
-                isCharging = intent.getIntExtra(BatteryManager.EXTRA_PLUGGED, -1) != 0;
+            if (changeReceived || intent == null || intent.getAction() == null) {
+                return;
+            }
+            if (intent.getAction().equals(ACTION_POWER_CONNECTED) || intent.getAction().equals(ACTION_POWER_DISCONNECTED)) {
+                Toast.makeText(MainActivity.this, intent.getAction(), Toast.LENGTH_SHORT).show();
+                changeReceived = true;
+                return;
+            }
+            if (intent.getAction().equals(ACTION_BATTERY_CHANGED)) {
+                int chargingType = intent.getIntExtra(EXTRA_PLUGGED, 0);
+                boolean isCharging = chargingType != 0;
+                if (!isCharging) {
+                    Toast.makeText(MainActivity.this, intent.getAction(), Toast.LENGTH_SHORT).show();
+                    changeReceived = true;
+                }
             }
         }
     };
@@ -91,7 +109,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         Intent batteryStatus = registerReceiver(null, new IntentFilter(ACTION_BATTERY_CHANGED));
-        isCharging = batteryStatus != null && batteryStatus.getIntExtra(BatteryManager.EXTRA_PLUGGED, -1) != 0;
+        boolean isCharging = batteryStatus != null && batteryStatus.getIntExtra(BatteryManager.EXTRA_PLUGGED, -1) != 0;
         if (!isCharging) {
             final AlertDialog dialog = getDialog(getString(R.string.dialog_connect_charger));
             dialog.show();
@@ -134,35 +152,43 @@ public class MainActivity extends AppCompatActivity {
             log("Model: " + Build.MODEL);
             log("Product: " + Build.PRODUCT);
             log("---------------------------------------------------------------------------");
-            registerReceiver(batteryChangedReceiver, new IntentFilter(ACTION_BATTERY_CHANGED));
+            IntentFilter intentFilter = new IntentFilter(ACTION_POWER_CONNECTED);
+            intentFilter.addAction(ACTION_POWER_DISCONNECTED);
+            intentFilter.addAction(ACTION_BATTERY_CHANGED);
+            registerReceiver(batteryChangedReceiver, intentFilter);
         }
 
         @Override
         protected Void doInBackground(Void... params) {
+            changeReceived = false;
             for (ToggleChargingFile file : files) {
                 publishProgress(String.format("Testing file '%s'...", file.getPath()));
                 if (new File(file.getPath()).exists()) {
                     Shell.SU.run(String.format("echo %s > %s", file.getChargeOff(), file.getPath()));
-                    try {
-                        Thread.sleep(WAIT_TIME);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                    if (!isCharging) {
-                        publishProgress(String.format("That file disabled charging: '%s'!", file.getPath()));
-                        publishProgress("Resetting file...");
-                        Shell.SU.run(String.format("echo %s > %s", file.getChargeOn(), file.getPath()));
-                        break;
+                    sleep();
+                    BatteryManager batteryManager = SDK_INT >= LOLLIPOP ? (BatteryManager) getSystemService(BATTERY_SERVICE) : null;
+                    int current = SDK_INT >= LOLLIPOP && batteryManager != null ? batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW) : 0;
+                    publishProgress("Resetting file...");
+                    Shell.SU.run(String.format("echo %s > %s", file.getChargeOn(), file.getPath()));
+                    if (changeReceived || current < -50000) {
+                        publishProgress(String.format("-----\nThat file might have disabled charging: '%s'!\n-----", file.getPath()));
+                        changeReceived = false;
                     } else {
                         publishProgress("That file did not work!");
-                        publishProgress("Resetting file...");
-                        Shell.SU.run(String.format("echo %s > %s", file.getChargeOn(), file.getPath()));
                     }
                 } else {
                     publishProgress("That file does not exist!");
                 }
             }
             return null;
+        }
+
+        private void sleep() {
+            try {
+                Thread.sleep(WAIT_TIME);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
 
         @Override
