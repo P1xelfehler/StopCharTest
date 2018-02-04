@@ -32,6 +32,7 @@ import static android.widget.Toast.LENGTH_SHORT;
 public class MainActivity extends AppCompatActivity {
 
     private static final long WAIT_TIME = 10000;
+    private static final long TRIGGER_CURRENT = -50000; // 50 mA
     ToggleChargingFile[] files = new ToggleChargingFile[]{
             new ToggleChargingFile("/sys/class/power_supply/battery/battery_charging_enabled", "1", "0"),
             new ToggleChargingFile("/sys/class/power_supply/battery/charging_enabled", "1", "0"),
@@ -170,7 +171,7 @@ public class MainActivity extends AppCompatActivity {
                     int current = SDK_INT >= LOLLIPOP && batteryManager != null ? batteryManager.getIntProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW) : 0;
                     publishProgress("Resetting file...");
                     Shell.SU.run(String.format("echo %s > %s", file.getChargeOn(), file.getPath()));
-                    if (changeReceived || current < -50000) {
+                    if (changeReceived || current < TRIGGER_CURRENT) {
                         publishProgress(String.format("-----\nThat file might have disabled charging: '%s'!\n-----", file.getPath()));
                         changeReceived = false;
                     } else {
